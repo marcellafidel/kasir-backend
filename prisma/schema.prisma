@@ -1,0 +1,122 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+}
+
+enum OrderStatus {
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  store Store?
+}
+
+model Store {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @unique
+  name         String
+  businessType String
+  address      String?
+  phone        String?
+  logoUrl      String?
+  isArchived   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id])
+  categories Category[]
+  products   Product[]
+  orders     Order[]
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  storeId   Int
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  store    Store     @relation(fields: [storeId], references: [id])
+  products Product[]
+
+  @@index([storeId])
+}
+
+model Product {
+  id           Int      @id @default(autoincrement())
+  storeId      Int
+  categoryId   Int?
+  name         String
+  price        Decimal  @db.Decimal(12, 2)
+  unit         String
+  allowDecimal Boolean  @default(false)
+  stock        Decimal  @default(0) @db.Decimal(12, 3)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  store      Store       @relation(fields: [storeId], references: [id])
+  category   Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  orderItems OrderItem[]
+
+  @@index([storeId])
+  @@index([categoryId])
+}
+
+model Order {
+  id                Int           @id @default(autoincrement())
+  storeId           Int
+  transactionNumber String        @unique
+  customerName      String?
+  totalAmount       Decimal       @db.Decimal(12, 2)
+  paymentMethod     PaymentMethod
+  paymentAmount     Decimal       @db.Decimal(12, 2)
+  changeAmount      Decimal       @default(0) @db.Decimal(12, 2)
+  status            OrderStatus   @default(COMPLETED)
+  note              String?       @db.VarChar(200)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  store Store       @relation(fields: [storeId], references: [id])
+  items OrderItem[]
+
+  @@index([storeId, createdAt])
+}
+
+model OrderItem {
+  id          Int     @id @default(autoincrement())
+  orderId     Int
+  productId   Int
+  productName String
+  unit        String
+  quantity    Decimal @db.Decimal(12, 3)
+  unitPrice   Decimal @db.Decimal(12, 2)
+  subtotal    Decimal @db.Decimal(12, 2)
+  note        String? @db.VarChar(200)
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+}
