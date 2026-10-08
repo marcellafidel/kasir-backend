@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { AppError } from "../lib/errors";
+import { cancelOrderAndRestoreStock } from "../lib/cancel-order";
 import { placeOrder } from "../lib/checkout";
 import { findOrder, listOrders } from "../lib/order-queries";
 import { toOrderResponse } from "../lib/order";
@@ -37,7 +38,7 @@ export async function createOrder(req: Request, res: Response): Promise<void> {
   }
 }
 
-// BARU (Fase 2): riwayat transaksi, terbaru dulu
+// Fase 2: riwayat transaksi, terbaru dulu
 export async function getOrderHistory(req: Request, res: Response): Promise<void> {
   try {
     const storeId = (req as Request & { storeId: number }).storeId;
@@ -66,7 +67,7 @@ export async function getOrderHistory(req: Request, res: Response): Promise<void
   }
 }
 
-// BARU (Fase 2): detail satu transaksi berdasarkan id atau transactionNumber
+// Fase 2: detail satu transaksi berdasarkan id atau transactionNumber
 export async function getOrderDetail(req: Request, res: Response): Promise<void> {
   try {
     const storeId = (req as Request & { storeId: number }).storeId;
@@ -96,6 +97,41 @@ export async function getOrderDetail(req: Request, res: Response): Promise<void>
     res.json({ order: toOrderResponse(order) });
   } catch (error) {
     console.error("Failed to get order:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+// BARU (Fase 3): batalkan transaksi dan kembalikan stok
+export async function cancelOrder(req: Request, res: Response): Promise<void> {
+  try {
+    const storeId = (req as Request & { storeId: number }).storeId;
+
+    if (typeof storeId !== "number") {
+      res.status(401).json({ message: "Authentication required" });
+      return;
+    }
+
+    const ref = parseOrderRef(req.params.idOrNumber);
+    if (!ref) {
+      res.status(400).json({
+        message: "Validation failed",
+        errors: {
+          idOrNumber: "Must be an order id or a transaction number (TRX-YYYYMMDD-XXXXXXXX)",
+        },
+      });
+      return;
+    }
+
+    const order = await cancelOrderAndRestoreStock(storeId, ref);
+    res.json({ message: "Transaction cancelled", order: toOrderResponse(order) });
+  } catch (error) {
+    // Error bisnis: tidak ditemukan (404) atau sudah dibatalkan (409)
+    if (error instanceof AppError) {
+      res.status(error.status).json(error.body);
+      return;
+    }
+
+    console.error("Failed to cancel order:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 }

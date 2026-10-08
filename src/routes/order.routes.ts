@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  cancelOrder,
   createOrder,
   getOrderDetail,
   getOrderHistory,
@@ -14,5 +15,6 @@ router.use(authMiddleware, loadStore);
 router.post("/", createOrder);
 router.get("/", getOrderHistory);
 router.get("/:idOrNumber", getOrderDetail);
+router.patch("/:idOrNumber/cancel", cancelOrder);
 
 export default router;
