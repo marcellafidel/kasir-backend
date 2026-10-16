@@ -95,11 +95,12 @@ export async function createProduct(req: Request, res: Response) {
 
 export async function listProducts(req: Request, res: Response) {
   const { storeId } = req as StoreRequest;
+  const includeInactive = req.query.includeInactive === "true";
 
   const products = await prisma.product.findMany({
     where: {
       storeId,
-      isActive: true,
+      ...(includeInactive ? {} : { isActive: true }),
     },
     include: {
       category: true,
@@ -128,7 +129,6 @@ export async function getProduct(req: Request, res: Response) {
     where: {
       id,
       storeId,
-      isActive: true,
     },
     include: {
       category: true,
@@ -160,7 +160,6 @@ export async function updateProduct(req: Request, res: Response) {
     where: {
       id,
       storeId,
-      isActive: true,
     },
   });
 
@@ -170,16 +169,19 @@ export async function updateProduct(req: Request, res: Response) {
     });
   }
 
-  const {
-    name,
-    price,
-    unit,
-    stock,
-    allowDecimal,
-    categoryId,
-  } = req.body ?? {};
-
+  const { name, price, unit, stock, allowDecimal, categoryId, isActive } =
+    req.body ?? {};
   const data: any = {};
+
+  if (isActive !== undefined) {
+    if (typeof isActive !== "boolean") {
+      return res.status(400).json({
+        message: "isActive must be a boolean",
+      });
+    }
+
+    data.isActive = isActive;
+  }
 
   if (name !== undefined) {
     const error = validateProductName(name);
