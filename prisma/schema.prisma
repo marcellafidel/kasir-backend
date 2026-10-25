@@ -47,6 +47,8 @@ model Store {
   categories Category[]
   products   Product[]
   orders     Order[]
+  expenseCategories ExpenseCategory[]
+  expenses          Expense[]
 }
 
 model Category {
@@ -119,4 +121,39 @@ model OrderItem {
 
   @@index([orderId])
   @@index([productId])
+}
+
+
+model ExpenseCategory {
+  id        Int      @id @default(autoincrement())
+  storeId   Int
+  name      String   @db.VarChar(100)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  store    Store     @relation(fields: [storeId], references: [id])
+  expenses Expense[]
+
+  @@unique([storeId, name])
+  @@index([storeId, isActive])
+}
+
+model Expense {
+  id          Int       @id @default(autoincrement())
+  storeId     Int
+  categoryId  Int
+  title       String    @db.VarChar(150)
+  amount      Decimal   @db.Decimal(12, 2)
+  expenseDate DateTime  @db.Date
+  note        String?   @db.VarChar(200)
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  store    Store           @relation(fields: [storeId], references: [id])
+  category ExpenseCategory @relation(fields: [categoryId], references: [id])
+
+  @@index([storeId, expenseDate])
+  @@index([storeId, categoryId])
 }
