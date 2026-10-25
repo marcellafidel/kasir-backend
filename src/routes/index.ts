@@ -8,6 +8,7 @@ import orderRoutes from "./order.routes";
 import expenseCategoryRoutes from "./expense-category.routes";
 import expenseRoutes from "./expense.routes";
 import reportRoutes from "./report.routes";
+import storeRoutes from "./store.routes";
 
 const router = Router();
 
@@ -19,5 +20,6 @@ router.use("/orders", orderRoutes);
 router.use("/expense-categories", expenseCategoryRoutes);
 router.use("/expenses", expenseRoutes);
 router.use("/reports", reportRoutes);
+router.use("/store", storeRoutes);
 
 export default router;
